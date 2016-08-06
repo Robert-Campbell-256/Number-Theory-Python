@@ -4,7 +4,7 @@
 # Note: Version 0.9 - major changes to improve SAGE compatibility
 #    Version 0.8 is compatible with both Python 2.5+ and 3.x 
 #       and changes some names to improve SAGE compatibility
-# Author: Robert Campbell, <campbell@math.umbc.edu>
+# Author: Robert Campbell, <r.campbel.256@gmail.com>
 # Date: 15 Dec, 2014
 # Version 0.91
 # License: Simplified BSD (see details at bottom)1
@@ -40,7 +40,7 @@
 
 
 __version__ = '0.91' # Format specified in Python PEP 396
-Version = 'finitefield.py, version ' + __version__ + ', 15 Dec, 2014, by Robert Campbell, <campbell@math.umbc.edu>'
+Version = 'finitefield.py, version ' + __version__ + ', 15 Dec, 2014, by Robert Campbell, <r.campbel.256@gmail.com>'
 
 import numbthy  # Use factor
 import random   # Generate random elements

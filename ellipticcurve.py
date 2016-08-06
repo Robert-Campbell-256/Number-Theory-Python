@@ -1,7 +1,7 @@
 ################################################################################
 # Elliptic Curve
 # Elliptic curves in reduced Weierstrass form over prime order fields
-# Author: Robert Campbell, <campbell@math.umbc.edu>
+# Author: Robert Campbell, <r.campbel.256@gmail.com>
 # Date: 18 May, 2014
 # Version 0.2
 # License: Simplified BSD (see details at bottom)
@@ -25,7 +25,9 @@
 			EllipticCurveElt(EllipticCurve(29, [4,20]), [2,6])
 """   
    
-Version = 'ELLIPTICCURVE.PY, version 0.1, 9 May, 2014, by Robert Campbell, <campbell@math.umbc.edu>'
+__version__ = '0.2' # Format specified in Python PEP 396
+Version = 'ELLIPTICCURVE.PY, version ' + __version__ + ', 18 May, 2014, by Robert Campbell, <r.campbel.256@gmail.com>'
+
 import numbthy # For xgcd (for modinv) and sqrtmod
 
 # Assumptions: Affine (later Projective?) Reduced Weierstrass form

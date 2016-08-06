@@ -1,7 +1,7 @@
 ################################################################################
 # ECDSA Signature
 # Python implementation (needs Python EllipticCurve module)
-# Author: Robert Campbell, <campbell@math.umbc.edu>
+# Author: Robert Campbell, <r.campbel.256@gmail.com>
 # Date: 1 June, 2014
 # Version 0.3
 # License: Simplified BSD (see details at bottom)

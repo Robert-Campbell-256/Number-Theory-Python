@@ -3,7 +3,7 @@
 # Basic Number Theory functions implemented in Python
 # Note: Version 0.7 changes some function names to align with SAGE
 # Note: Version 0.8 is compatible with both Python 2.5+ and 3.x
-# Author: Robert Campbell, <campbell@math.umbc.edu>
+# Author: Robert Campbell, <r.campbel.256@gmail.com>
 # Date: 18 Nov 2014
 # Version 0.81
 # License: Simplified BSD (see details at bottom)
@@ -38,7 +38,7 @@
 """
 
 __version__ = '0.81'  # Format specified in Python PEP 396
-Version = 'NUMBTHY.PY, version ' + __version__ + ', 18 Nov, 2014, by Robert Campbell, <campbell@math.umbc.edu>'
+Version = 'NUMBTHY.PY, version ' + __version__ + ', 18 Nov, 2014, by Robert Campbell, <r.campbel.256@gmail.com>'
 
 import math  # Use sqrt, floor
 import functools # Use reduce (Python 2.5+ and 3.x)
