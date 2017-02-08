@@ -5,8 +5,8 @@
 #    Version 0.8 is compatible with both Python 2.5+ and 3.x 
 #       and changes some names to improve SAGE compatibility
 # Author: Robert Campbell, <r.campbel.256@gmail.com>
-# Date: 15 Dec, 2014
-# Version 0.91
+# Date: 7 Feb, 2017
+# Version 0.92
 # License: Simplified BSD (see details at bottom)1
 ######################################################################################
 """Finite fields.
@@ -39,8 +39,8 @@
 	        FiniteFieldElt(FiniteField(5, [4, 3, 1, 0, 1, 3, 0, 0]),[2, 0, 3, 4, 0, 1, 1, 0])"""
 
 
-__version__ = '0.91' # Format specified in Python PEP 396
-Version = 'finitefield.py, version ' + __version__ + ', 15 Dec, 2014, by Robert Campbell, <r.campbel.256@gmail.com>'
+__version__ = '0.92' # Format specified in Python PEP 396
+Version = 'finitefield.py, version ' + __version__ + ', 7 Feb, 2017, by Robert Campbell, <r.campbel.256@gmail.com>'
 
 import numbthy  # Use factor
 import random   # Generate random elements
@@ -342,12 +342,12 @@ class FiniteFieldElt(object):
 # Read a file of Conway Polynomials, formatted as per Frank Luebeck
 # [http://www.math.rwth-aachen.de/~Frank.Luebeck/data/ConwayPol/CPimport.txt]
 def readconway(filepath,p,e):
+        import sys
 	try:
 		cpfile = open(filepath)
 	except IOError as e:
 	    print("I/O error({0}): {1}\n   Probably couldn't find file 'CPimport.txt' of Conway Polynomials\n   Try [http://www.math.rwth-aachen.de/~Frank.Luebeck/data/ConwayPol/CPimport.txt]".format(e.errno, e.strerror))
-        import sys
-        raise type(e)
+            pass # Pass the exception up the calling stack
 	cpfile.readline()   # Discard the first line
 	for theline in cpfile:
 		if (theline[0] == '0'):
@@ -360,34 +360,47 @@ def readconway(filepath,p,e):
 			return polyspec[2]
 
 def findprimpoly(p,e):
-	ordfacts = numbthy.factor(p**e-1)
-	for thepolynum in range(p+1,p**e):
+	import sys
+	if sys.version_info[0] > 2: 
+		iterrange = range  # Version 3 patch
+	else:
+		iterrange = xrange  # Version 2 patch
+	ordfacts = numbthy.factor((p**e)-1)
+	print (p**e)-1, " = ", ordfacts
+	for thepolynum in iterrange(p+1,p**e):
 		# Note: Skip [0,d1,d2,...] as not irred
 		# Note: Skip [d0,0,0,...,0,1] as not primitive and probably not irred
 		thepoly = [(thepolynum//(p**i))%p for i in range(e)]  # length e list of p digits
 		a = FiniteField(p,thepoly).gen()  # create poly 'x' mod thepoly, check its order
-		if ((a**(p**e-1)) != 1): break    # thepoly not irred, next poly
-		for (thefact,thepow) in ordfacts:
-			if ((a**((p**e-1)/thefact)) == 1): break # thepoly not prim, probably not irred
-		return thepoly
+		print thepoly, str(a)
+		if ((a**((p**e)-1)) == 1):    # check for irreducibility, else try next poly
+			isprim = True
+			for (thefact,thepow) in ordfacts:
+				print thefact
+				if ((a**(((p**e)-1)/thefact)) == 1): # thepoly not prim
+					isprim = False
+					break # Don't need to check any more cofactors
+			if isprim: return thepoly
+	print "Oops" # Should throw exception - should never reach this point, all prime/exp have primitive polys
 
 def GF(n,name='x',modulus=[]):
 	if numbthy.is_prime(n):
-		# Blah, need prime field implementation, maybe
-		raise ValueError("Haven't coded prime field GF({0}) yet - sorry".format(n))
-	else:
+		if len(modulus)<2:
+			print "Haven't coded prime field GF({0}) yet - sorry".format(n)
+			raise ValueError("Haven't coded prime field GF({0}) yet - sorry".format(n))
+		else:
+			return FiniteField(n,modulus,name) # Explicit characteristic and polynomial modulus
+	else:  # n is not prime - hope it's a prime power
 		nfactors = numbthy.factor(n)
 		if (len(nfactors) != 1): raise ValueError('GF({0}) only makes sense for {0} a prime power'.format(n))
 		p = nfactors[0][0]; e = nfactors[0][1]  # Prime p, exponent e
 		if (len(modulus) == 0):
 			try:
-				thepoly = readconway('CPimport.txt',p,e)[:-1] # Assume monic
-			except IOError,ValueError:
+				modulus = readconway('CPimport.txt',p,e)[:-1] # Assume monic
+			except(IOError,ValueError):
 				print("      Look for non-Conway primitive polynomial")
-				thepoly = findprimpoly(p,e)
-		return FiniteField(p,thepoly,name)
-
-
+				modulus = findprimpoly(p,e)
+		return FiniteField(p,modulus,name)
 
 ##################################################################################
 # More Examples:
