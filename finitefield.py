@@ -5,8 +5,8 @@
 #    Version 0.8 is compatible with both Python 2.5+ and 3.x 
 #       and changes some names to improve SAGE compatibility
 # Author: Robert Campbell, <r.campbel.256@gmail.com>
-# Date: 7 Feb, 2017
-# Version 0.92
+# Date: 16 Sept, 2017
+# Version 0.93
 # License: Simplified BSD (see details at bottom)1
 ######################################################################################
 """Finite fields.
@@ -20,6 +20,7 @@
 	    >>> GF81.random().verbstr()       # a random value, formatted as polynomial
 	    >>> a+2*(a**12)+2*(a**50)         # some arithmetic
 	    >>> for i,x in enumerate(GF81): print i,x.verbstr()
+	    >>> GF13 = GF(13); GF13(10)+GF13(10) # Compute mod 13
 
 	Examples:
 	    >>> from finitefield import *     # names do not need path
@@ -39,8 +40,8 @@
 	        FiniteFieldElt(FiniteField(5, [4, 3, 1, 0, 1, 3, 0, 0]),[2, 0, 3, 4, 0, 1, 1, 0])"""
 
 
-__version__ = '0.92' # Format specified in Python PEP 396
-Version = 'finitefield.py, version ' + __version__ + ', 7 Feb, 2017, by Robert Campbell, <r.campbel.256@gmail.com>'
+__version__ = '0.93' # Format specified in Python PEP 396
+Version = 'finitefield.py, version ' + __version__ + ', 16 Sept, 2017, by Robert Campbell, <r.campbel.256@gmail.com>'
 
 import numbthy  # Use factor
 import random   # Generate random elements
@@ -87,19 +88,26 @@ class FiniteField(object):
 				   raise ValueError('{0} is not a factorization of ({1}^{2}-1)'.format(orderfacts,self.char,self.degree))
 		self.reduc_table = [[0 for j in range(self.degree)] for i in range(2*self.degree-1)]
 		for i in range(self.degree): self.reduc_table[i][i] = 1
-		self.reduc_table[self.degree] = [(-self.modpoly[j])%self.char for j in range(self.degree)]
-		for i in range(self.degree+1,2*self.degree-1):
-			for j in range(self.degree):
-				self.reduc_table[i][j] = sum(map(lambda k: (-self.modpoly[k]*self.reduc_table[i-self.degree+k][j]), range(self.degree))) % self.char
+		if(self.degree > 1):
+			self.reduc_table[self.degree] = [(-self.modpoly[j])%self.char for j in range(self.degree)]
+			for i in range(self.degree+1,2*self.degree-1):
+				for j in range(self.degree):
+					self.reduc_table[i][j] = sum(map(lambda k: (-self.modpoly[k]*self.reduc_table[i-self.degree+k][j]), range(self.degree))) % self.char
 
 	def verbstr(self): # Requires feature from python 2.5.2 or better
-		return "Z_"+str(self.char)+"["+self.var+"]/<"+self.polyprint(self.modpoly+[1],self.var)+">"
-
+		if(self.degree > 1):
+			return "Z_"+str(self.char)+"["+self.var+"]/<"+self.polyprint(self.modpoly+[1],self.var)+">"
+		else:
+			return "Z_"+str(self.char)
+			
 	def __format__(self,fmtspec):  # Over-ride format conversion
 		return str(self)  # Get to this later
 
 	def __str__(self):  # Over-ride string conversion used by print
-		return "GF("+str(self.char)+"^"+str(self.degree)+")"
+		if(self.degree > 1):
+			return "GF("+str(self.char)+"^"+str(self.degree)+")"
+		else:
+			return "GF("+str(self.char)+")"			
 
 	def __repr__(self):  # Over-ride string conversion used by print
 		return "FiniteField("+str(self.char)+", "+str(self.modpoly)+")"
@@ -336,7 +344,7 @@ class FiniteFieldElt(object):
 				if (theval == 1):
 					orderaccum *= (theprime**thepow)
 					break
-				theval *= theprime
+				theval = theval**theprime
 		return orderaccum
 
 # Read a file of Conway Polynomials, formatted as per Frank Luebeck
@@ -386,8 +394,7 @@ def findprimpoly(p,e):
 def GF(n,name='x',modulus=[]):
 	if numbthy.is_prime(n):
 		if len(modulus)<2:
-			print "Haven't coded prime field GF({0}) yet - sorry".format(n)
-			raise ValueError("Haven't coded prime field GF({0}) yet - sorry".format(n))
+			return FiniteField(n,[1],name)
 		else:
 			return FiniteField(n,modulus,name) # Explicit characteristic and polynomial modulus
 	else:  # n is not prime - hope it's a prime power
@@ -422,7 +429,7 @@ def GF(n,name='x',modulus=[]):
 ############################################################################
 # License: Freely available for use, abuse and modification
 # (this is the Simplified BSD License, aka FreeBSD license)
-# Copyright 2001-2014 Robert Campbell. All rights reserved.
+# Copyright 2001-2017 Robert Campbell. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -433,18 +440,28 @@ def GF(n,name='x',modulus=[]):
 #    2. Redistributions in binary form must reproduce the above copyright
 #       notice, this list of conditions and the following disclaimer in 
 #       the documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND ANY EXPRESS 
+# OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
+# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT 
+# SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR 
+# BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN 
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ############################################################################
 
-# 1 June:
+# 1 June 2014: ver 0.6
 #  norm, trace
 #  minpoly (difficult - requires linear algebra)
-# 19 July: ver 0.7
+# 19 July 2014: ver 0.7
 #  allow direct input of factored group order
 #  changed from factors to factor (changed in numbthy.py)
-# 21 July: ver 0.71
+# 21 July 2014: ver 0.71
 #  is_primitive()
 #  order()
-# 18 Oct: ver 0.8
+# 18 Oct 2014: ver 0.8
 #   [http://www.sagemath.org/doc/reference/rings_standard/sage/rings/finite_rings/constructor.html]
 #   [http://www.sagemath.org/doc/reference/rings_standard/sage/rings/finite_rings/element_base.html]
 #   [http://www.sagemath.org/doc/reference/rings_standard/sage/rings/finite_rings/integer_mod.html]
@@ -453,3 +470,12 @@ def GF(n,name='x',modulus=[]):
 #   Conway polynomials
 #   (still need to address simple case of prime field)
 #   Bug: 1/eltfinfld - fixed (inv and __div__ each referenced the other - need polynomial xgcd)
+# 15 Dec 2014: ver 0.91
+#   Conway polynomials - fixed bug in readconway routine
+#   findprimpoly() - added for brute force primitive polynomial search
+# 7 Feb 2017: ver 0.92
+#   fix to findprimpoly()
+# 16 Sept 2017: ver 0.93
+#   Prime field
+#   Fixed bug in order() - always returned 1
+#   Need to improve formatted output
