@@ -5,8 +5,8 @@
 #    Version 0.8 is compatible with both Python 2.5+ and 3.x 
 #       and changes some names to improve SAGE compatibility
 # Author: Robert Campbell, <r.campbel.256@gmail.com>
-# Date: 16 Sept, 2017
-# Version 0.93
+# Date: 22 Jan, 2018
+# Version 0.94
 # License: Simplified BSD (see details at bottom)1
 ######################################################################################
 """Finite fields.
@@ -16,7 +16,7 @@
 	    >>> from finitefield import *     # names do not need path
 	    >>> GF81 = GF(3**4)               # create finite field
 	    >>> a = GF81([0,1])               # create element [0,1] = (0 + 1*x) = x
-	    >>> '{0}^10 has value {1}'.format(a,a**10) # format as polynomial
+	    >>> '{0:l}^10 has value {1:l}'.format(a,a**10) # format as coeff list
 	    >>> GF81.random().verbstr()       # a random value, formatted as polynomial
 	    >>> a+2*(a**12)+2*(a**50)         # some arithmetic
 	    >>> for i,x in enumerate(GF81): print i,x.verbstr()
@@ -29,19 +29,25 @@
 	    >>> a**12                         # Compute (2x+1)**12 in GF(9)
 	  Define GF(5^8), defined mod z^8+3z^5+z^4+z^2+3z+4
 	  Providing the factored order as (5^8-1) = (2^5)(3)(13)(313)
-	  Output is coefficients only ('c'), not full polynomials ('z')
-	    >>> GF5e8 = FiniteField(5,[4,3,1,0,1,3,0,0],'z',[[2,5],[3,1],[13,1],[313,1]],'p')
+	  Output is coefficients only ('c'), not full polynomials ('p')
+	    >>> GF5e8 = FiniteField(5,[4,3,1,0,1,3,0,0],'z',[[2,5],[3,1],[13,1],[313,1]],'c')
 	    >>> a = FiniteFieldElt(GF5e8,[0,1])
-	    >>> '{0}'.format(a**20)
+	    >>> format(a**20)  # Default format, set when defining FiniteField
+	        '20340110'
+	    >>> '{0:p}'.format(a**20)  # Force polynomial format
 	        '(2 + 3z^2 + 4z^3 + z^5 + z^6)'
+	    >>> '{0:l}'.format(a**20)  # Force coeff list format
+	        '[2, 0, 3, 4, 0, 1, 1, 0]'
+	    >>> '{0:c}'.format(a**20)  # Force packed coeffs format
+	        '20340110'
 	    >>> print a**20
 	        [2, 0, 3, 4, 0, 1, 1, 0]
 	    >>> a**20
 	        FiniteFieldElt(FiniteField(5, [4, 3, 1, 0, 1, 3, 0, 0]),[2, 0, 3, 4, 0, 1, 1, 0])"""
 
 
-__version__ = '0.93' # Format specified in Python PEP 396
-Version = 'finitefield.py, version ' + __version__ + ', 16 Sept, 2017, by Robert Campbell, <r.campbel.256@gmail.com>'
+__version__ = '0.94' # Format specified in Python PEP 396
+Version = 'finitefield.py, version ' + __version__ + ', 22 Jan, 2018, by Robert Campbell, <r.campbel.256@gmail.com>'
 
 import numbthy  # Use factor
 import random   # Generate random elements
@@ -101,6 +107,26 @@ class FiniteField(object):
 			return "Z_"+str(self.char)
 			
 	def __format__(self,fmtspec):  # Over-ride format conversion
+		"""Override the format when outputting a finite field.
+		A default can be set when the field is defined or it can be specified for each output.
+		Possible formats are:
+			p - polynomial format
+			l - list of coefficients
+			c - coefficients in packed format
+			f - full format, can be used as input
+			s - short format"""
+		if(fmtspec == ''): fmtspec = self.fmtspec
+		if(fmtspec == 'p'): # Polynomial format
+			return "GF("+str(self.char)+"**"+str(self.degree)+","+self.polyprint(self.modpoly+[1],self.var)+")"
+		elif(fmtspec == 'l'): # Coefficient list format
+			return "GF("+str(self.char)+"**"+str(self.degree)+","+format(self.modpoly+[1])+")"
+		elif(fmtspec == 'c'): # Coeffs only format
+			return "GF("+str(self.char)+"**"+str(self.degree)+","+''.join([str(self.modpoly[i]) for i in range(len(self.modpoly))])+"1"+")"
+		elif(fmtspec == 'f'): # Full form format - can be input
+			return "FiniteField("+str(self.char)+","+str(self.modpoly)+")"
+		elif(fmtspec == 's'): # Short format - field size only (can be input though)
+			return "GF("+str(self.char)+"**"+str(self.degree)+")"
+		else: raise ValueError("***** Error *****: FiniteField has valid fmtspec values p, l, c, f and s, not <{0}>".format(fmtspec))
 		return str(self)  # Get to this later
 
 	def __str__(self):  # Over-ride string conversion used by print
@@ -109,8 +135,8 @@ class FiniteField(object):
 		else:
 			return "GF("+str(self.char)+")"			
 
-	def __repr__(self):  # Over-ride string conversion used by print
-		return "FiniteField("+str(self.char)+", "+str(self.modpoly)+")"
+	def __repr__(self):  # Over-ride format conversion
+		return format(self)
 
 	def polyprint(self,coeffs,var):  # Coefficients and polynomial variable, e.g. [1,2,2,0,3], "x" yields "1 + 2x + 2x^2 + 3x^4"
 		thestr = ""
@@ -133,11 +159,11 @@ class FiniteField(object):
 				elif(i != firstnon):  # Positive coeff (not the first non-zero coeff)
 					thestr += " + "
 				if(abs(coeffs[i]) != 1): # Suppress printing a coeff of '1'
-					thestr += str(abs(coeffs[i]))
+					thestr += (str(abs(coeffs[i])) + "*")
 				if(i == 1): # x^1 is just 'x'
 					thestr += var
 				else:
-					thestr += var+"^"+str(i)
+					thestr += var+"**"+str(i)
 		return thestr
 
 	def __call__(self,elts=0):  # Coerce constant or array of coeffs as elt of field
@@ -162,7 +188,7 @@ class FiniteField(object):
 		return FiniteFieldElt(self,[(therand//(self.char)**i)%(self.char) for i in range(self.degree)])
 
 	def gen(self):  # Generator element of the field
-		"""Generating element of the finite field."""
+		"""Usual generating element of the finite field."""
 		return FiniteFieldElt(self,[0,1])
 
 class FiniteFieldElt(object):
@@ -177,20 +203,42 @@ class FiniteFieldElt(object):
 	def __init__(self, field, elts=0):
 		self.field = field
 		if (type(elts) == type(0)): # Allow simplified form
-			self.coeffs = [elts] + [0 for i in range(self.field.degree-1)]
+			self.coeffs = [mod(elts,self.field.char)] + [0 for i in range(self.field.degree-1)]
 		else:
-			self.coeffs = elts + [0 for i in range(self.field.degree - len(elts))]
+			self.coeffs = [mod(theelt,self.field.char) for theelt in elts] + [0 for i in range(self.field.degree - len(elts))]
 
 	def verbstr(self): # Requires feature from python 2.5.2 or better
 		return "("+self.field.polyprint(self.coeffs,self.field.var)+")"
 
 	def __format__(self,fmtspec):  # Over-ride format conversion
+		"""Override the format when outputting a finite field element.
+		A default can be set when the field is defined or it can be specified for each output.
+		Possible formats are:
+			p - polynomial format
+			l - list of coefficients
+			c - coefficients in packed format
+			f - full format - can be used as input
+		Example:
+			>>> GF64 = GF(2**6,var='z',fmtspec='c')
+			>>> a = GF64([1,0,1,1,0,1])
+			>>> format(a)
+			'101101'
+			>>> '{:p}'.format(a)
+			'(1 + z^2 + z^3 + z^5)'
+			>>> '{:l}'.format(a)
+			'[1, 0, 1, 1, 0, 1]'
+			>>> '{:c}'.format(a)
+			'101101'  """
 		if(fmtspec == ''): fmtspec = self.field.fmtspec
-		if(fmtspec == 'p'): # Polynomial format
+		if(fmtspec == 'p' or fmtspec == 's'): # Polynomial format
 			return "("+self.field.polyprint(self.coeffs,self.field.var)+")"
+		elif(fmtspec == 'l'): # Coefficient list format
+			return format(self.coeffs)
 		elif(fmtspec == 'c'): # Coeffs only format
 			return ''.join([str(self.coeffs[i]) for i in range(len(self.coeffs))])
-		else: raise ValueError("***** Error *****: FiniteFieldElt has valid fmtspec values p and c, not <{0}>".format(fmtspec))
+		elif(fmtspec == 'f'): # Full form format - can be input
+			return "FiniteFieldElt("+self.field.__repr__()+","+str(self.coeffs)+")"
+		else: raise ValueError("***** Error *****: FiniteFieldElt has valid fmtspec values p, l, c and f, not <{0}>".format(fmtspec))
 
 	def __str__(self):
 		"""over-ride string conversion used by print"""
@@ -198,7 +246,7 @@ class FiniteFieldElt(object):
 
 	def __repr__(self):
 		"""over-ride string conversion used by print"""
-		return "FiniteFieldElt("+self.field.__repr__()+","+str(self.coeffs)+")"
+		return format(self)
 
 	def __cmp__(self,other):
 		"""compare two elements for equality and allow sorting
@@ -258,12 +306,6 @@ class FiniteFieldElt(object):
 	def __isub__(self,summand): # Overload the "-=" operator
 		self = self - summand
 		return self
-
-# 	def mult(self,multand):  # Elementary multiplication in finite fields
-# 		thelist = [0 for i in range(self.field.degree)]
-# 		for d in range(2*self.field.degree-2):
-# 			thelist = map(add, thelist, [sum(self.coeffs[j]*multand.coeffs[d-j] for j in range(max(0,d-self.field.degree),min(d,self.field.degree-1)+1))*i for i in self.field.reduc_table[d]])
-# 		return FiniteFieldElt(self.field,map(lambda x: x%self.field.char, thelist))
 
 	def mult(self,multand):  # Elementary multiplication in finite fields
 		"""multiply elements of finite fields (overloaded to allow integers and lists of integers)"""
@@ -329,12 +371,15 @@ class FiniteFieldElt(object):
 		return self.pow(exponent)
 
 	def is_primitive(self):
+		"""is_primitive(e) returns True if the finite field element e has full order,
+		i.e. the powers of e exhaust all non-zero elements of the field."""
 		if (self**(self.field.order-1) != 1): return False # Not a unit
 		for [theprime,thepow] in self.field.facts_order_gpunits:
 			if (self**((self.field.order-1)//theprime) == 1): return False
 		return True
 
 	def order(self):
+		"""order(b) returns the smallest positive non-zero exponent e such that b**e == 1."""
 		if (self**(self.field.order-1) != 1): 
 			raise ValueError('{0} is not a unit in GF({1}^{2})'.format(self,self.field.char,self.field.degree))
 		orderaccum = 1
@@ -350,12 +395,12 @@ class FiniteFieldElt(object):
 # Read a file of Conway Polynomials, formatted as per Frank Luebeck
 # [http://www.math.rwth-aachen.de/~Frank.Luebeck/data/ConwayPol/CPimport.txt]
 def readconway(filepath,p,e):
-        import sys
+	import sys
 	try:
 		cpfile = open(filepath)
 	except IOError as e:
-	    print("I/O error({0}): {1}\n   Probably couldn't find file 'CPimport.txt' of Conway Polynomials\n   Try [http://www.math.rwth-aachen.de/~Frank.Luebeck/data/ConwayPol/CPimport.txt]".format(e.errno, e.strerror))
-            pass # Pass the exception up the calling stack
+		print("I/O error({0}): {1}\n   Probably couldn't find file 'CPimport.txt' of Conway Polynomials\n   Try [http://www.math.rwth-aachen.de/~Frank.Luebeck/data/ConwayPol/CPimport.txt]".format(e.errno, e.strerror))
+		pass # Pass the exception up the calling stack
 	cpfile.readline()   # Discard the first line
 	for theline in cpfile:
 		if (theline[0] == '0'):
@@ -368,6 +413,10 @@ def readconway(filepath,p,e):
 			return polyspec[2]
 
 def findprimpoly(p,e):
+	"""A brute-force search for a primitive polynomomial mod p of degree e.
+	Needs to be fixed, as it relies on a bug in the FiniteField code, allowing
+	a 'field' to be defined mod a reducible polynomial.  Also needs better check
+	for reducibility - often fails for non-prime degrees."""
 	import sys
 	if sys.version_info[0] > 2: 
 		iterrange = range  # Version 3 patch
@@ -380,34 +429,34 @@ def findprimpoly(p,e):
 		# Note: Skip [d0,0,0,...,0,1] as not primitive and probably not irred
 		thepoly = [(thepolynum//(p**i))%p for i in range(e)]  # length e list of p digits
 		a = FiniteField(p,thepoly).gen()  # create poly 'x' mod thepoly, check its order
-		print thepoly, str(a)
+		print(thepoly, str(a))
 		if ((a**((p**e)-1)) == 1):    # check for irreducibility, else try next poly
 			isprim = True
 			for (thefact,thepow) in ordfacts:
-				print thefact
 				if ((a**(((p**e)-1)/thefact)) == 1): # thepoly not prim
 					isprim = False
 					break # Don't need to check any more cofactors
 			if isprim: return thepoly
-	print "Oops" # Should throw exception - should never reach this point, all prime/exp have primitive polys
+	print("Oops") # Should throw exception - should never reach this point, all prime/exp have primitive polys
 
-def GF(n,name='x',modulus=[]):
+def GF(n, poly=[], var='x', fmtspec="p"):
+	"""A shorthand for generating finite fields.  If poly is not specified then one will be chosen from a list of Conway polynomials."""
 	if numbthy.is_prime(n):
 		if len(modulus)<2:
-			return FiniteField(n,[1],name)
+			return FiniteField(n,[1],var=var,fmtspec=fmtspec)
 		else:
-			return FiniteField(n,modulus,name) # Explicit characteristic and polynomial modulus
+			return FiniteField(n,poly=poly,var=var,fmtspec=fmtspec) # Explicit characteristic and polynomial modulus
 	else:  # n is not prime - hope it's a prime power
 		nfactors = numbthy.factor(n)
 		if (len(nfactors) != 1): raise ValueError('GF({0}) only makes sense for {0} a prime power'.format(n))
 		p = nfactors[0][0]; e = nfactors[0][1]  # Prime p, exponent e
-		if (len(modulus) == 0):
+		if (len(poly) == 0):
 			try:
-				modulus = readconway('CPimport.txt',p,e)[:-1] # Assume monic
+				poly = readconway('CPimport.txt',p,e)[:-1] # Assume monic
 			except(IOError,ValueError):
 				print("      Look for non-Conway primitive polynomial")
-				modulus = findprimpoly(p,e)
-		return FiniteField(p,modulus,name)
+				poly = findprimpoly(p,e)
+		return FiniteField(p,poly=poly,var=var,fmtspec=fmtspec)
 
 ##################################################################################
 # More Examples:
@@ -479,3 +528,6 @@ def GF(n,name='x',modulus=[]):
 #   Prime field
 #   Fixed bug in order() - always returned 1
 #   Need to improve formatted output
+# 22 Jan 2018: ver 0.94
+#   Formatting - both for FiniteField and FiniteFieldElt
+#   Added document strings
