@@ -5,8 +5,8 @@
 #    Version 0.8 is compatible with both Python 2.5+ and 3.x 
 #       and changes some names to improve SAGE compatibility
 # Author: Robert Campbell, <r.campbel.256@gmail.com>
-# Date: 22 Jan, 2018
-# Version 0.94
+# Date: 28 Jan, 2018
+# Version 0.95
 # License: Simplified BSD (see details at bottom)1
 ######################################################################################
 """Finite fields.
@@ -35,7 +35,7 @@
 	    >>> format(a**20)  # Default format, set when defining FiniteField
 	        '20340110'
 	    >>> '{0:p}'.format(a**20)  # Force polynomial format
-	        '(2 + 3z^2 + 4z^3 + z^5 + z^6)'
+	        '(2 + 3*z**2 + 4*z**3 + z**5 + z**6)'
 	    >>> '{0:l}'.format(a**20)  # Force coeff list format
 	        '[2, 0, 3, 4, 0, 1, 1, 0]'
 	    >>> '{0:c}'.format(a**20)  # Force packed coeffs format
@@ -46,12 +46,12 @@
 	        FiniteFieldElt(FiniteField(5, [4, 3, 1, 0, 1, 3, 0, 0]),[2, 0, 3, 4, 0, 1, 1, 0])"""
 
 
-__version__ = '0.94' # Format specified in Python PEP 396
-Version = 'finitefield.py, version ' + __version__ + ', 22 Jan, 2018, by Robert Campbell, <r.campbel.256@gmail.com>'
+__version__ = '0.95' # Format specified in Python PEP 396
+Version = 'finitefield.py, version ' + __version__ + ', 28 Jan, 2018, by Robert Campbell, <r.campbel.256@gmail.com>'
 
 import numbthy  # Use factor
 import random   # Generate random elements
-import types # Use IntType, LongType
+import sys      # Check Python2 or Python3
 from operator import add,mul,mod # To allow reduce(add,list) construct for sum
 
 class FiniteField(object):
@@ -78,7 +78,7 @@ class FiniteField(object):
 		    >>> '{0}'.format(c**20)   # Default format
 		       '20340110'
 		    >>> '{0:p}'.format(c**20) # Force polynomial format
-		       '(2 + 3z^2 + 4z^3 + z^5 + z^6)'"""
+		       '(2 + 3*z**2 + 4*z**3 + z**5 + z**6)'"""
 
 		self.char = prime
 		self.degree = len(poly)
@@ -200,9 +200,13 @@ class FiniteFieldElt(object):
 	    >>> a = FiniteFieldElt(GF9,[1,2]) # Define 2x+1 in GF(9)
 	    >>> a**12                         # Compute (2x+1)**12 in GF(9)"""
 
+	def isIntType(self,x):
+		if sys.version_info < (3,): return isinstance(x,(int, long,))
+		else: return isinstance(x,(int,))
+                
 	def __init__(self, field, elts=0):
 		self.field = field
-		if (type(elts) == type(0)): # Allow simplified form
+		if self.isIntType(elts): # Allow coercion from integer
 			self.coeffs = [mod(elts,self.field.char)] + [0 for i in range(self.field.degree-1)]
 		else:
 			self.coeffs = [mod(theelt,self.field.char) for theelt in elts] + [0 for i in range(self.field.degree - len(elts))]
@@ -248,17 +252,31 @@ class FiniteFieldElt(object):
 		"""over-ride string conversion used by print"""
 		return format(self)
 
-	def __cmp__(self,other):
+	def __cmpfinfld__(self,other): # Implement cmp for both Python2 and Python3
 		"""compare two elements for equality and allow sorting
 		overloaded to allow comparisons to integers and lists of integers"""
-		if((type(other) == types.IntType) or (type(other) == types.LongType)):
-			return cmp(self.coeffs,[other]+[0 for i in range(self.field.degree-1)])
-		elif(type(other) == types.ListType):
-			return cmp(self.coeffs,other+[0 for i in range(self.field.degree-len(other))])
+		if self.isIntType(other):  # Coerce if comparing int and and finfld
+			return self.listcmp(tuple(reversed(self.coeffs)),tuple(reversed([other]+[0 for i in range(self.field.degree-1)])))
+		elif isinstance(other,(list,tuple,)): # Coerce if comparing list (of coeffs) and finfld
+			return self.listcmp(tuple(reversed(self.coeffs)),tuple(reversed(other+[0 for i in range(self.field.degree-len(other))])))
 		elif(self.field != other.field):
-			return -1
+			raise ValueError("Cannot compare elements of different FiniteFields: <{0}> and <{1}>".format(self.field,other.field))
 		else:
-			return cmp(self.coeffs,other.coeffs)
+			return self.listcmp(tuple(reversed(self.coeffs)),tuple(reversed(other.coeffs)))
+
+	def listcmp(self,list1,list2): # Implement list cmp for Python3
+		for ptr in range(len(list1)):
+			if (list1[ptr] < list2[ptr]): return -1
+			if (list1[ptr] > list2[ptr]): return 1
+		else: return 0
+
+	def __cmp__(self,other): return self.__cmpfinfld__(other) # Used by Python2 for sorting
+	def __lt__(self,other): return (self.__cmpfinfld__(other) < 0)
+	def __gt__(self,other): return (self.__cmpfinfld__(other) > 0)
+	def __eq__(self,other): return (self.__cmpfinfld__(other) == 0)
+	def __le__(self,other): return (self.__cmpfinfld__(other) <= 0)
+	def __ge__(self,other): return (self.__cmpfinfld__(other) >= 0)
+	def __ne__(self,other): return (self.__cmpfinfld__(other) != 0)
 
 	def norm(self):
 		"""The norm of an element over the base field is the product of its conjugates, 
@@ -274,21 +292,20 @@ class FiniteFieldElt(object):
 
 	def add(self,summand):
 		"""add elements of finite fields (overloaded to allow adding integers and lists of integers)"""
-		return FiniteFieldElt(self.field, map(lambda x,y: (x+y)%self.field.char, self.coeffs, summand.coeffs))
+		return FiniteFieldElt(self.field, tuple(map(lambda x,y: (x+y)%self.field.char, self.coeffs, summand.coeffs)))
 
 	def __add__(self,summand):   # Overload the "+" operator
-		if ((type(summand) == types.IntType) or (type(summand) == types.LongType)):
-			# Coerce if adding integer and FiniteFieldElt
+		if self.isIntType(summand): # Coerce if adding integer and FiniteFieldElt
 			return self.add(FiniteFieldElt(self.field,[summand]))
-		elif(type(summand) == types.ListType):
+		elif isinstance(summand,(list,tuple,)): # Coerce if adding list (of coeffs) and FiniteFieldElt
 			return self.add(FiniteFieldElt(self.field,summand))
 		else:
 			return self.add(summand)
 
 	def __radd__(self,summand):  # Overload the "+" operator when first addend can be coerced to finfld
-		if ((type(summand) == types.IntType) or (type(summand) == types.LongType)): # Coerce if adding int and finfld
+		if self.isIntType(summand): # Coerce if adding int and finfld
 			return self.add(FiniteFieldElt(self.field,[summand]))
-		elif(type(summand) == types.ListType): # Coerce if adding list and finfld
+		elif isinstance(summand,(list,tuple,)): # Coerce if adding list and finfld
 			return self.add(FiniteFieldElt(self.field,summand))
 		else:
 			return self.add(summand)
@@ -298,7 +315,7 @@ class FiniteFieldElt(object):
 		return self
 
 	def __neg__(self):  # Overload the "-" unary operator 
-		return FiniteFieldElt(self.field, map(lambda x: self.field.char-x, self.coeffs))
+		return FiniteFieldElt(self.field, tuple(map(lambda x: self.field.char-x, self.coeffs)))
 
 	def __sub__(self,summand):  # Overload the "-" binary operator 
 		return self.__add__(-summand)
@@ -314,20 +331,20 @@ class FiniteFieldElt(object):
 			for j in range(max(0,d-(self.field.degree-1)),min(d+1,self.field.degree)):
 				list2 = [(self.coeffs[j]*multand.coeffs[d-j])*i for i in self.field.reduc_table[d]]
 				thelist = map(add, thelist, list2)
-		return FiniteFieldElt(self.field,map(lambda x: x%self.field.char, thelist))
+		return FiniteFieldElt(self.field, tuple(map(lambda x: x%self.field.char, thelist)))
 
 	def __mul__(self,multip):  # Overload the "*" operator
-		if ((type(multip) == types.IntType) or (type(multip) == types.LongType)): # Coerce if multiply int and finfld
+		if self.isIntType(multip): # Coerce if multiply int and finfld
 			return self.mult(FiniteFieldElt(self.field,[multip]))
-		elif (type(multip) == types.ListType): # Coerce if multiply list and finfld
+		elif isinstance(multip,(list,tuple,)): # Coerce if multiply list and finfld
 			return self.mult(FiniteFieldElt(self.field,multip))
 		else:
 			return self.mult(multip)
 
 	def __rmul__(self,multip):  # Overload the "*" operator
-		if ((type(multip) == types.IntType) or (type(multip) == types.LongType)): # Coerce if mult int and and finfld
+		if self.isIntType(multip): # Coerce if mult int and and finfld
 			return self.mult(FiniteFieldElt(self.field,[multip]))
-		elif (type(multip) == types.ListType): # Coerce if mult list and and finfld
+		elif isinstance(multip,(list,tuple,)): # Coerce if mult list and and finfld
 			return self.mult(FiniteFieldElt(self.field,multip))
 		return self.mult(multip)
 
@@ -345,12 +362,12 @@ class FiniteFieldElt(object):
 		return self * divisor.inv()
 
 	def __div__(self,divisor):
-		if ((type(divisor) == types.IntType) or (type(divisor) == types.LongType)):
+		if self.isIntType(divisor):
 			divisor = FiniteFieldElt(self.field,[divisor])  # Coerce if dividing integer and FiniteFieldElt
 		return self * divisor.inv()
 
 	def __rdiv__(self,dividend):
-		if ((type(dividend) == types.IntType) or (type(dividend) == types.LongType)):
+		if self.isIntType(dividend):
 			dividend = FiniteFieldElt(self.field,[dividend])  # Coerce if dividing integer and FiniteFieldElt
 		return dividend * self.inv()
 
@@ -416,28 +433,8 @@ def findprimpoly(p,e):
 	"""A brute-force search for a primitive polynomomial mod p of degree e.
 	Needs to be fixed, as it relies on a bug in the FiniteField code, allowing
 	a 'field' to be defined mod a reducible polynomial.  Also needs better check
-	for reducibility - often fails for non-prime degrees."""
-	import sys
-	if sys.version_info[0] > 2: 
-		iterrange = range  # Version 3 patch
-	else:
-		iterrange = xrange  # Version 2 patch
-	ordfacts = numbthy.factor((p**e)-1)
-	print (p**e)-1, " = ", ordfacts
-	for thepolynum in iterrange(p+1,p**e):
-		# Note: Skip [0,d1,d2,...] as not irred
-		# Note: Skip [d0,0,0,...,0,1] as not primitive and probably not irred
-		thepoly = [(thepolynum//(p**i))%p for i in range(e)]  # length e list of p digits
-		a = FiniteField(p,thepoly).gen()  # create poly 'x' mod thepoly, check its order
-		print(thepoly, str(a))
-		if ((a**((p**e)-1)) == 1):    # check for irreducibility, else try next poly
-			isprim = True
-			for (thefact,thepow) in ordfacts:
-				if ((a**(((p**e)-1)/thefact)) == 1): # thepoly not prim
-					isprim = False
-					break # Don't need to check any more cofactors
-			if isprim: return thepoly
-	print("Oops") # Should throw exception - should never reach this point, all prime/exp have primitive polys
+	for reducibility - often fails for non-prime degrees.  Need to implement Rabin test in polynomial class."""
+	raise NotImplementedError('findpripoly() is not implemented.  Previous implementation was buggy and removed.')
 
 def GF(n, poly=[], var='x', fmtspec="p"):
 	"""A shorthand for generating finite fields.  If poly is not specified then one will be chosen from a list of Conway polynomials."""
@@ -531,3 +528,6 @@ def GF(n, poly=[], var='x', fmtspec="p"):
 # 22 Jan 2018: ver 0.94
 #   Formatting - both for FiniteField and FiniteFieldElt
 #   Added document strings
+# 28 Jan 2018: ver 0.95
+#   Fixed support for Python 3
+#   Removed buggy findprimpoly (often returned reducible poly if degree composite)
