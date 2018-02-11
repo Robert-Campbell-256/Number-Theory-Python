@@ -5,8 +5,8 @@
 #    Version 0.8 is compatible with both Python 2.5+ and 3.x 
 #       and changes some names to improve SAGE compatibility
 # Author: Robert Campbell, <r.campbel.256@gmail.com>
-# Date: 28 Jan, 2018
-# Version 0.95
+# Date: 10 Feb, 2018
+# Version 0.96
 # License: Simplified BSD (see details at bottom)1
 ######################################################################################
 """Finite fields.
@@ -17,7 +17,7 @@
 	    >>> GF81 = GF(3**4)               # create finite field
 	    >>> a = GF81([0,1])               # create element [0,1] = (0 + 1*x) = x
 	    >>> '{0:l}^10 has value {1:l}'.format(a,a**10) # format as coeff list
-	    >>> GF81.random().verbstr()       # a random value, formatted as polynomial
+	    >>> GF81.random_element().verbstr()  # a random value, formatted as polynomial
 	    >>> a+2*(a**12)+2*(a**50)         # some arithmetic
 	    >>> for i,x in enumerate(GF81): print i,x.verbstr()
 	    >>> GF13 = GF(13); GF13(10)+GF13(10) # Compute mod 13
@@ -46,8 +46,8 @@
 	        FiniteFieldElt(FiniteField(5, [4, 3, 1, 0, 1, 3, 0, 0]),[2, 0, 3, 4, 0, 1, 1, 0])"""
 
 
-__version__ = '0.95' # Format specified in Python PEP 396
-Version = 'finitefield.py, version ' + __version__ + ', 28 Jan, 2018, by Robert Campbell, <r.campbel.256@gmail.com>'
+__version__ = '0.96' # Format specified in Python PEP 396
+Version = 'finitefield.py, version ' + __version__ + ', 10 Feb, 2018, by Robert Campbell, <r.campbel.256@gmail.com>'
 
 import numbthy  # Use factor
 import random   # Generate random elements
@@ -114,6 +114,7 @@ class FiniteField(object):
 			l - list of coefficients
 			c - coefficients in packed format
 			f - full format, can be used as input
+			t - LaTeX format
 			s - short format"""
 		if(fmtspec == ''): fmtspec = self.fmtspec
 		if(fmtspec == 'p'): # Polynomial format
@@ -124,6 +125,8 @@ class FiniteField(object):
 			return "GF("+str(self.char)+"**"+str(self.degree)+","+''.join([str(self.modpoly[i]) for i in range(len(self.modpoly))])+"1"+")"
 		elif(fmtspec == 'f'): # Full form format - can be input
 			return "FiniteField("+str(self.char)+","+str(self.modpoly)+")"
+		if(fmtspec == 't'): # LaTeX format
+			return "GF("+str(self.char)+"^{"+str(self.degree)+"},"+self.polyprint(self.modpoly+[1],self.var,fmtspec='t')+")"
 		elif(fmtspec == 's'): # Short format - field size only (can be input though)
 			return "GF("+str(self.char)+"**"+str(self.degree)+")"
 		else: raise ValueError("***** Error *****: FiniteField has valid fmtspec values p, l, c, f and s, not <{0}>".format(fmtspec))
@@ -138,7 +141,10 @@ class FiniteField(object):
 	def __repr__(self):  # Over-ride format conversion
 		return format(self)
 
-	def polyprint(self,coeffs,var):  # Coefficients and polynomial variable, e.g. [1,2,2,0,3], "x" yields "1 + 2x + 2x^2 + 3x^4"
+	def polyprint(self,coeffs,var,fmtspec='p'):  # Coefficients and polynomial variable, e.g. [1,2,2,0,3], "x" yields "1 + 2x + 2x^2 + 3x^4"
+		"""polyprint(coeffs,var,fmtspec) prints the coefficients in polynomial form, 
+		using the variable var. Formats can be Python/SAGE, ie 1 - 2*x + 2*x**2 + 3*x**4, 
+		or LaTeX, ie 1 - 2x + 2x^{2} + 3x^{4}"""
 		thestr = ""
 		firstnon = -1
 		for i in range(len(coeffs)): # Find first non-zero coeff
@@ -159,11 +165,17 @@ class FiniteField(object):
 				elif(i != firstnon):  # Positive coeff (not the first non-zero coeff)
 					thestr += " + "
 				if(abs(coeffs[i]) != 1): # Suppress printing a coeff of '1'
-					thestr += (str(abs(coeffs[i])) + "*")
+					if (fmtspec=='t'):
+						thestr += str(abs(coeffs[i]))
+					else:
+						thestr += (str(abs(coeffs[i])) + "*")
 				if(i == 1): # x^1 is just 'x'
 					thestr += var
 				else:
-					thestr += var+"**"+str(i)
+					if (fmtspec=='t'):
+						thestr += var+"^{"+str(i)+"}"
+					else:
+						thestr += var+"**"+str(i)
 		return thestr
 
 	def __call__(self,elts=0):  # Coerce constant or array of coeffs as elt of field
@@ -182,11 +194,15 @@ class FiniteField(object):
 				digits[i+1] += 1
 				i += 1
 
-	def random(self):
+	def random_element(self):
 		"""A random element of the finite field."""
 		therand = random.randint(0,(self.char)**(self.degree)-1)
 		return FiniteFieldElt(self,[(therand//(self.char)**i)%(self.char) for i in range(self.degree)])
 
+	def random(self):
+		"""A random element of the finite field. (Renamed random_element in ver 0.96)"""
+		return self.random_element()
+                
 	def gen(self):  # Generator element of the field
 		"""Usual generating element of the finite field."""
 		return FiniteFieldElt(self,[0,1])
@@ -221,6 +237,7 @@ class FiniteFieldElt(object):
 			p - polynomial format
 			l - list of coefficients
 			c - coefficients in packed format
+			t - LaTeX format
 			f - full format - can be used as input
 		Example:
 			>>> GF64 = GF(2**6,var='z',fmtspec='c')
@@ -240,8 +257,10 @@ class FiniteFieldElt(object):
 			return format(self.coeffs)
 		elif(fmtspec == 'c'): # Coeffs only format
 			return ''.join([str(self.coeffs[i]) for i in range(len(self.coeffs))])
+		elif(fmtspec == 't'): # LaTeX format
+			return "("+self.field.polyprint(self.coeffs,self.field.var,fmtspec='t')+")"
 		elif(fmtspec == 'f'): # Full form format - can be input
-			return "FiniteFieldElt("+self.field.__repr__()+","+str(self.coeffs)+")"
+			return "FiniteFieldElt("+'{0:f}'.format(self.field)+","+str(self.coeffs)+")"
 		else: raise ValueError("***** Error *****: FiniteFieldElt has valid fmtspec values p, l, c and f, not <{0}>".format(fmtspec))
 
 	def __str__(self):
@@ -395,8 +414,8 @@ class FiniteFieldElt(object):
 			if (self**((self.field.order-1)//theprime) == 1): return False
 		return True
 
-	def order(self):
-		"""order(b) returns the smallest positive non-zero exponent e such that b**e == 1."""
+	def multiplicative_order(self):
+		"""multiplicative_order(b) returns the smallest positive non-zero exponent e such that b**e == 1."""
 		if (self**(self.field.order-1) != 1): 
 			raise ValueError('{0} is not a unit in GF({1}^{2})'.format(self,self.field.char,self.field.degree))
 		orderaccum = 1
@@ -409,6 +428,46 @@ class FiniteFieldElt(object):
 				theval = theval**theprime
 		return orderaccum
 
+	def order(self):
+		"""order(b) returns the smallest positive non-zero exponent e such that b**e == 1.  (Renamed multiplicative_order in ver 0.96)"""
+		return self.multiplicative_order()
+
+	def minimal_polynomial(self):  # Find first element of nullspace in matrix (1, a, a^2, a^3, ..., a^deg)
+		"""minimal_polynomial(a) is the least degree monic polynomial which has
+		a value of zero when a is substituted.  (Currently returns a list of 
+		coefficients - will revisit when a polynomial package has been written.)
+		To see in conventional polynomial format use 
+		FiniteField.polyprint(a.minimal_polynomial(),'X')"""
+		thedegree = self.field.degree
+		themod = self.field.char
+		numrows = self.field.degree+1
+		numcols = 2*self.field.degree+1
+		themat = [(self**i).coeffs + [(0 if (i!=j) else 1) for j in range(numrows)] for i in range(numrows)]
+		###### Nested function
+		def reducemat(submat):
+			pivotrow=0
+			for rj in range(thedegree):
+				# Find the pivot element in this column
+				for ri in range(pivotrow,len(submat)):
+					if (submat[ri][rj] != 0):
+						# Swap rows
+						temp = submat[pivotrow]; submat[pivotrow] = submat[ri]; submat[ri] = temp
+						break
+				else:
+					continue # No pivot in this column - move to next column (for rj)
+				# Subtract multiples of pivot row from lower rows (zeroing out column elts)
+				invpivot = numbthy.inverse_mod(submat[pivotrow][rj],themod)
+				for ri in range(pivotrow+1,len(submat)):
+					rowmult = mod(invpivot*submat[ri][rj],themod)
+					for rjj in range(rj,numcols):
+						submat[ri][rjj] = mod(submat[ri][rjj]-rowmult*submat[pivotrow][rjj],themod)
+					#if not any(themat[i][:thedegree]): return themat[i][thedegree:]
+				pivotrow += 1  # Move down to next row
+		###### end Nested function reducemat
+		for i in range(2,numrows+1): # Reduce each submatrix - look for first null
+			reducemat(themat[:i])
+			if not any(map(lambda x:x!=0, themat[i-1][:thedegree])): return themat[i-1][thedegree:]
+			
 # Read a file of Conway Polynomials, formatted as per Frank Luebeck
 # [http://www.math.rwth-aachen.de/~Frank.Luebeck/data/ConwayPol/CPimport.txt]
 def readconway(filepath,p,e):
@@ -531,3 +590,7 @@ def GF(n, poly=[], var='x', fmtspec="p"):
 # 28 Jan 2018: ver 0.95
 #   Fixed support for Python 3
 #   Removed buggy findprimpoly (often returned reducible poly if degree composite)
+# 10 Feb 2018: ver 0.96
+#   Add minimal_polynomial() method
+#   Minor renaming for SAGE compatibility (multiplicative_order and random_element)
+#   Minor formatting changes
