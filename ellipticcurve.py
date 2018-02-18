@@ -2,8 +2,8 @@
 # Elliptic Curve
 # Elliptic curves in reduced Weierstrass form over prime order fields
 # Author: Robert Campbell, <r.campbel.256@gmail.com>
-# Date: 4 Feb, 2018
-# Version 0.25
+# Date: 17 Feb, 2018
+# Version 0.26
 # License: Simplified BSD (see details at bottom)
 ######################################################################################
 """Elliptic Curve
@@ -25,10 +25,13 @@
 			'EllipticCurve(29, (4,20))'
 """   
    
-__version__ = '0.25' # Format specified in Python PEP 396
-Version = 'ELLIPTICCURVE.PY, version ' + __version__ + ', 4 Feb, 2018, by Robert Campbell, <r.campbel.256@gmail.com>'
+__version__ = '0.26' # Format specified in Python PEP 396
+Version = 'ELLIPTICCURVE.PY, version ' + __version__ + ', 17 Feb, 2018, by Robert Campbell, <r.campbel.256@gmail.com>'
 
 import numbthy # For xgcd (for modinv) and sqrtmod
+import random   # Generate random elements
+import sys      # Check Python2 or Python3
+import math  # For sqrt
 
 # Assumptions: Affine (later Projective?) Reduced Weierstrass form
 #	over prime field.  Thus identity is point at infinity,
@@ -80,6 +83,50 @@ class EllipticCurve(object):
 		if(self.discriminant == 0): raise ValueError("***** Error *****: Not an elliptic curve - Zero discriminant (-16*(4*({0}^3)+27*({1}^2)))".format(self.a,self.b))
 		self.fmtspec = fmtspec
 
+	def isIntType(self,x):
+		if sys.version_info < (3,): return isinstance(x,(int, long,))
+		else: return isinstance(x,(int,))
+                
+	def __call__(self,pt):  # Coerce constant or array of coeffs as elt of field
+		"""Create a point on the curve from a tuple or list of integers. (not [Infinity,Infinity])"""
+		if not (isinstance(pt,(list,tuple,)) and len(pt)==2 and self.isIntType(pt[0]) and self.isIntType(pt[1])):
+			raise ValueError('{0} should be a list or tuple of two integers'.format(pt))
+		if not ((pow(pt[0],3,self.prime) + self.a*pt[0] + self.b - pt[1]*pt[1]) % self.prime == 0):
+			raise ValueError('{0} is not a point on the curve {1}'.format(pt,self))
+		return EllipticCurveElt(self,pt)
+
+	def __iter__(self):
+		"""Generator producing all points on the elliptic curve."""
+		yield EllipticCurveElt(self, ("Infinity","Infinity"))
+		x = 0
+		for x in range(self.prime):
+			ysq = (pow(x,3,self.prime) + self.a*x + self.b) % self.prime
+			if((ysq == 0) or (pow(ysq,(self.prime-1)//2,self.prime)==1)):
+				if (ysq == 0): y = 0
+				else: y = numbthy.sqrtmod(ysq,self.prime)
+				if((y % 2)==1): y = self.prime - y # Always even y first (consistent order)
+				yield EllipticCurveElt(self, (x,y))
+				if (y != 0): yield EllipticCurveElt(self, (x,self.prime - y)) # Distinct unless y==0
+		raise StopIteration
+                
+	def random_element(self):
+		"""A random element of the elliptic curve."""
+		# Currently, choosing point at infinity (group identity) and point
+		# with y=0 is twice as likely as any other point.
+		# Find a random x such that y^2 = x^3 + ax + b has a solution (mod p)
+		xrand = random.randint(-1,self.prime-1)
+		if(xrand == -1): return EllipticCurveElt(self, ("Infinity","Infinity"))
+		ysq = (pow(xrand,3,self.prime) + self.a*xrand + self.b) % self.prime
+		while((ysq != 0) and (pow(ysq,(self.prime-1)//2,self.prime)!=1)):
+			xrand = random.randint(-1,self.prime-1)
+			if(xrand == -1): return EllipticCurveElt(self, ("Infinity","Infinity"))
+			ysq = (pow(xrand,3,self.prime) + self.a*xrand + self.b) % self.prime
+		# Given x, find a y solving y^2 = x^3 + ax + b (mod p)
+		if (ysq == 0): yrand = 0
+		else: yrand = numbthy.sqrtmod(ysq,self.prime)
+		if(random.randint(0,1)==1): yrand = self.prime - yrand # Choose between pt and -pt
+		return EllipticCurveElt(self,(xrand,yrand))
+		
 	def __format__(self,fmtspec):  # Over-ride format conversion
 		"""Override the format when outputting an elliptic curve.
 		A default can be set when the curve is defined or it can be specified for each output.
@@ -93,7 +140,7 @@ class EllipticCurve(object):
 		if(fmtspec == 'f'): # Full format
 			return "EllipticCurve({0},({1},{2}))".format(self.prime,self.a,self.b)
 		if(fmtspec == 't'): # LaTeX format
-			return "\mathbb(E)_{{y^2 = x^3 + {0}x + {1} \pmod{{{2}}}}}".format(self.a,self.b,self.prime)
+			return "\mathbb{{E}}_{{y^2 = x^3 + {0}x + {1} \pmod{{{2}}}}}".format(self.a,self.b,self.prime)
                         
 	def __str__(self):   # Over-ride string conversion used by print (?maybe?) and str()
 		return format(self)
@@ -148,6 +195,20 @@ class EllipticCurveElt(object):
 		return format(self)
 	def __repr__(self): # Over-ride string conversion for output
 		return format(self)
+	def __cmpec__(self,other): # Implement cmp for both Python2 and Python3
+		"""compare two points for equality and (possibly in future allow sorting)
+		overloaded to allow comparisons to lists of integers"""
+		# Coerce if comparing list (x,y) and point
+		if (isinstance(other,(list,tuple,)) and len(other)==2 and self.ec.isIntType(pt[0]) and self.ec.isIntType(pt[1])):
+			if (other[0]==self.x) and (other[1]==self.y): return 0
+			else: return 1
+		elif(self.ec != other.ec):
+			raise ValueError("Cannot compare elements of different elliptic curves: <{0}> and <{1}>".format(self.ec,other.ec))
+		else:
+			if (other.x==self.x) and (other.y==self.y): return 0
+			else: return 1
+	def __eq__(self,other): return (self.__cmpec__(other) == 0)
+	def __ne__(self,other): return (self.__cmpec__(other) != 0)
 	def add(self,summand):
 		"""add elements of elliptic curves"""
 		if (self.x == "Infinity"):  # Add to zero (i.e. point at infinity)
@@ -155,7 +216,7 @@ class EllipticCurveElt(object):
 		elif (summand.x == "Infinity"):  # Add zero (i.e. point at infinity)
 			return self
 		elif ((summand.x == self.x) and ((summand.y + self.y) % self.ec.prime == 0)): # P + (-P) = infty
-			return EllipticCurveElt(self.ec, ["Infinity","Infinity"])
+			return EllipticCurveElt(self.ec, ("Infinity","Infinity"))
 		else:  # Usual addition and doubling (what a nuisance: lambda is a keyword - shorten to lamb)
 			if (self.x == summand.x):  # Point doubling
 				lamb = (3*(self.x**2)+self.ec.a)*numbthy.xgcd(2*self.y,self.ec.prime)[1] % self.ec.prime
@@ -163,14 +224,14 @@ class EllipticCurveElt(object):
 				lamb = (self.y - summand.y) * numbthy.xgcd((self.x - summand.x), self.ec.prime)[1]  % self.ec.prime
 			x3 = (lamb*lamb - self.x - summand.x) % self.ec.prime
 			y3 = (lamb*(self.x-x3) - self.y) % self.ec.prime
-			return EllipticCurveElt(self.ec, [x3,y3])
+			return EllipticCurveElt(self.ec, (x3,y3))
 	def __add__(self,summand):   # Overload the "+" operator
 		return self.add(summand)
 	def __iadd__(self,summand): # Overload the "+=" operator
 		self = self + summand
 		return self
 	def __neg__(self):  # Overload the "-" unary operator
-		return EllipticCurveElt(self.ec, [self.x, ((-self.y) % self.ec.prime)])
+		return EllipticCurveElt(self.ec, (self.x, ((-self.y) % self.ec.prime)))
 	def __sub__(self,summand):  # Overload the "-" binary operator
 		return self.__add__(-summand)
 	def __isub__(self,summand): # Overload the "-=" operator
@@ -178,7 +239,7 @@ class EllipticCurveElt(object):
 		return self
 	def mult(self,multand):  # Multiply EC point by integer (repeated addition in EC)
 		"""multiply elliptic curve point by integer (repeated addition in the elliptic curve)"""
-		accum = EllipticCurveElt(self.ec, ["Infinity","Infinity"]) # start with identity
+		accum = EllipticCurveElt(self.ec, ("Infinity","Infinity")) # start with identity
 		i = 0
 		bpow2 = self
 		while ((multand>>i) > 0):
@@ -223,3 +284,8 @@ class EllipticCurveElt(object):
 #   Added document strings
 #   Remove verbose mode
 #   Fixed support for Python 3
+# 17 Feb 2018: ver 0.26
+#   Added random_element
+#   Added iterator
+#   Added call (coerce list as point on curve)
+#   Changed list to tuple for (x,y) - fix comparison bug
