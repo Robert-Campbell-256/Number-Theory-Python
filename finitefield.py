@@ -5,8 +5,8 @@
 #    Version 0.8 is compatible with both Python 2.5+ and 3.x 
 #       and changes some names to improve SAGE compatibility
 # Author: Robert Campbell, <r.campbel.256@gmail.com>
-# Date: 10 Feb, 2018
-# Version 0.96
+# Date: 11 March, 2018
+# Version 0.97
 # License: Simplified BSD (see details at bottom)1
 ######################################################################################
 """Finite fields.
@@ -46,8 +46,8 @@
 	        FiniteFieldElt(FiniteField(5, [4, 3, 1, 0, 1, 3, 0, 0]),[2, 0, 3, 4, 0, 1, 1, 0])"""
 
 
-__version__ = '0.96' # Format specified in Python PEP 396
-Version = 'finitefield.py, version ' + __version__ + ', 10 Feb, 2018, by Robert Campbell, <r.campbel.256@gmail.com>'
+__version__ = '0.97' # Format specified in Python PEP 396
+Version = 'finitefield.py, version ' + __version__ + ', 11 March, 2018, by Robert Campbell, <r.campbel.256@gmail.com>'
 
 import numbthy  # Use factor
 import random   # Generate random elements
@@ -102,7 +102,7 @@ class FiniteField(object):
 
 	def verbstr(self): # Requires feature from python 2.5.2 or better
 		if(self.degree > 1):
-			return "Z_"+str(self.char)+"["+self.var+"]/<"+self.polyprint(self.modpoly+[1],self.var)+">"
+			return "Z_"+str(self.char)+"["+self.var+"]/<"+self.polyprint(self.modpoly+[1],var=self.var)+">"
 		else:
 			return "Z_"+str(self.char)
 			
@@ -118,7 +118,7 @@ class FiniteField(object):
 			s - short format"""
 		if(fmtspec == ''): fmtspec = self.fmtspec
 		if(fmtspec == 'p'): # Polynomial format
-			return "GF("+str(self.char)+"**"+str(self.degree)+","+self.polyprint(self.modpoly+[1],self.var)+")"
+			return "GF("+str(self.char)+"**"+str(self.degree)+","+self.polyprint(self.modpoly+[1],var=self.var)+")"
 		elif(fmtspec == 'l'): # Coefficient list format
 			return "GF("+str(self.char)+"**"+str(self.degree)+","+format(self.modpoly+[1])+")"
 		elif(fmtspec == 'c'): # Coeffs only format
@@ -126,7 +126,7 @@ class FiniteField(object):
 		elif(fmtspec == 'f'): # Full form format - can be input
 			return "FiniteField("+str(self.char)+","+str(self.modpoly)+")"
 		if(fmtspec == 't'): # LaTeX format
-			return "GF("+str(self.char)+"^{"+str(self.degree)+"},"+self.polyprint(self.modpoly+[1],self.var,fmtspec='t')+")"
+			return "GF("+str(self.char)+"^{"+str(self.degree)+"},"+self.polyprint(self.modpoly+[1],var=self.var,fmtspec='t')+")"
 		elif(fmtspec == 's'): # Short format - field size only (can be input though)
 			return "GF("+str(self.char)+"**"+str(self.degree)+")"
 		else: raise ValueError("***** Error *****: FiniteField has valid fmtspec values p, l, c, f and s, not <{0}>".format(fmtspec))
@@ -141,10 +141,14 @@ class FiniteField(object):
 	def __repr__(self):  # Over-ride format conversion
 		return format(self)
 
-	def polyprint(self,coeffs,var,fmtspec='p'):  # Coefficients and polynomial variable, e.g. [1,2,2,0,3], "x" yields "1 + 2x + 2x^2 + 3x^4"
-		"""polyprint(coeffs,var,fmtspec) prints the coefficients in polynomial form, 
-		using the variable var. Formats can be Python/SAGE, ie 1 - 2*x + 2*x**2 + 3*x**4, 
-		or LaTeX, ie 1 - 2x + 2x^{2} + 3x^{4}"""
+	def polyprint(self,coeffs,var='X',fmtspec='p'):  # Coefficients and polynomial variable, e.g. [1,2,2,0,3], "x" yields "1 + 2x + 2x^2 + 3x^4"
+		"""polyprint(coeffs,var=thevar,fmtspec=thefmtspec) prints the coefficients in polynomial form, 
+		using the variable thevar. Formats can be Python/SAGE, ie 1 - 2*x + 2*x**2 + 3*x**4, 
+		or LaTeX, ie 1 - 2x + 2x^{2} + 3x^{4}
+		Possible formats are:
+			p - polynomial format
+			f - full format, can be used as input
+			t - LaTeX format"""
 		thestr = ""
 		firstnon = -1
 		for i in range(len(coeffs)): # Find first non-zero coeff
@@ -228,7 +232,7 @@ class FiniteFieldElt(object):
 			self.coeffs = [mod(theelt,self.field.char) for theelt in elts] + [0 for i in range(self.field.degree - len(elts))]
 
 	def verbstr(self): # Requires feature from python 2.5.2 or better
-		return "("+self.field.polyprint(self.coeffs,self.field.var)+")"
+		return "("+self.field.polyprint(self.coeffs,var=self.field.var)+")"
 
 	def __format__(self,fmtspec):  # Over-ride format conversion
 		"""Override the format when outputting a finite field element.
@@ -252,13 +256,13 @@ class FiniteFieldElt(object):
 			'101101'  """
 		if(fmtspec == ''): fmtspec = self.field.fmtspec
 		if(fmtspec == 'p' or fmtspec == 's'): # Polynomial format
-			return "("+self.field.polyprint(self.coeffs,self.field.var)+")"
+			return "("+self.field.polyprint(self.coeffs,var=self.field.var)+")"
 		elif(fmtspec == 'l'): # Coefficient list format
 			return format(self.coeffs)
 		elif(fmtspec == 'c'): # Coeffs only format
 			return ''.join([str(self.coeffs[i]) for i in range(len(self.coeffs))])
 		elif(fmtspec == 't'): # LaTeX format
-			return "("+self.field.polyprint(self.coeffs,self.field.var,fmtspec='t')+")"
+			return "("+self.field.polyprint(self.coeffs,var=self.field.var,fmtspec='t')+")"
 		elif(fmtspec == 'f'): # Full form format - can be input
 			return "FiniteFieldElt("+'{0:f}'.format(self.field)+","+str(self.coeffs)+")"
 		else: raise ValueError("***** Error *****: FiniteFieldElt has valid fmtspec values p, l, c and f, not <{0}>".format(fmtspec))
@@ -437,7 +441,7 @@ class FiniteFieldElt(object):
 		a value of zero when a is substituted.  (Currently returns a list of 
 		coefficients - will revisit when a polynomial package has been written.)
 		To see in conventional polynomial format use 
-		FiniteField.polyprint(a.minimal_polynomial(),'X')"""
+		FiniteField.polyprint(a.minimal_polynomial(),var='X')"""
 		thedegree = self.field.degree
 		themod = self.field.char
 		numrows = self.field.degree+1
@@ -498,10 +502,10 @@ def findprimpoly(p,e):
 def GF(n, poly=[], var='x', fmtspec="p"):
 	"""A shorthand for generating finite fields.  If poly is not specified then one will be chosen from a list of Conway polynomials."""
 	if numbthy.is_prime(n):
-		if len(modulus)<2:
+		if len(poly)<2:
 			return FiniteField(n,[1],var=var,fmtspec=fmtspec)
 		else:
-			return FiniteField(n,poly=poly,var=var,fmtspec=fmtspec) # Explicit characteristic and polynomial modulus
+			return FiniteField(n,poly,var=var,fmtspec=fmtspec) # Explicit characteristic and polynomial modulus
 	else:  # n is not prime - hope it's a prime power
 		nfactors = numbthy.factor(n)
 		if (len(nfactors) != 1): raise ValueError('GF({0}) only makes sense for {0} a prime power'.format(n))
@@ -512,7 +516,10 @@ def GF(n, poly=[], var='x', fmtspec="p"):
 			except(IOError,ValueError):
 				print("      Look for non-Conway primitive polynomial")
 				poly = findprimpoly(p,e)
-		return FiniteField(p,poly=poly,var=var,fmtspec=fmtspec)
+		else:
+			if nfactors[0][1] != len(poly):
+				raise ValueError('Polynomial {0} does not have degree {1}'.format(poly+[1],nfactors[0][1]))
+		return FiniteField(p,poly,var=var,fmtspec=fmtspec)
 
 ##################################################################################
 # More Examples:
@@ -594,3 +601,6 @@ def GF(n, poly=[], var='x', fmtspec="p"):
 #   Add minimal_polynomial() method
 #   Minor renaming for SAGE compatibility (multiplicative_order and random_element)
 #   Minor formatting changes
+# 11 Mar 2018: ver 0.97
+#   Fix various bugs in GF
+#   polyprint: Let default var be 'X'
