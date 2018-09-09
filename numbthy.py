@@ -3,9 +3,9 @@
 # Basic Number Theory functions implemented in Python
 # Note: Version 0.7 changes some function names to align with SAGE
 # Note: Version 0.8 is compatible with both Python 2.5+ and 3.x
-# Author: Robert Campbell, <r.campbel.256@gmail.com>
-# Date: 18 Nov 2014
-# Version 0.81
+# Author: Robert Campbell, <campbell@math.umbc.edu>
+# Date: 4 Sept, 2018
+# Version 0.82
 # License: Simplified BSD (see details at bottom)
 ######################################################################################
 """Basic number theory functions.
@@ -37,17 +37,19 @@
 		isprimitive(g,n) - Test whether g is primitive mod n.  (Renamed is_primitive_root(g,n) in ver 0.8)
 """
 
-__version__ = '0.81'  # Format specified in Python PEP 396
-Version = 'NUMBTHY.PY, version ' + __version__ + ', 18 Nov, 2014, by Robert Campbell, <r.campbel.256@gmail.com>'
+__version__ = '0.82'  # Format specified in Python PEP 396
+Version = 'NUMBTHY.PY, version ' + __version__ + ', 4 Sept, 2018, by Robert Campbell, <campbell@math.umbc.edu>'
 
 import math  # Use sqrt, floor
 import functools # Use reduce (Python 2.5+ and 3.x)
 
 def gcd(a,b):
 	"""gcd(a,b) returns the greatest common divisor of the integers a and b."""
-	if a == 0:
-		return abs(b)
-	return abs(gcd(b % a, a))
+	a = abs(a); b = abs(b)
+	while (a > 0):
+		b = b % a
+		tmp=a; a=b; b=tmp
+	return b
 
 def xgcd(a,b):
 	"""xgcd(a,b) returns a tuple of form (g,x,y), where g is gcd(a,b) and
