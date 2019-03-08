@@ -3,8 +3,9 @@
 # Basic Number Theory functions implemented in Python
 # Note: Currently requires Python 2.x (uses +=, %= and other 2.x-isms)
 # Author: Robert Campbell, <r.campbel.256@gmail.com>
-# Date: 8 June, 2013
-# Version 1.1
+# Modified: Hubert Holin, <Hubert.Holin.1982@Polytechnique.org>
+# Date: 8 March, 2019
+# Version 1.1.1
 # License: Simplified BSD (see details at bottom)
 # Requirements:
 #	Requires at least Python 2.x (runs fine on Python 2.2)
@@ -14,8 +15,10 @@
 #   Need to clean up input/output routines, so a-bi does not print a+-bi and so
 #       one can easily cut and paste to input previous output
 ######################################################################################
-__version__ = '1.1' # Format specified in Python PEP 396
-Version = 'GAUSSINT.PY, version ' + __version__ + ', 8 June, 2013, by Robert Campbell, <r.campbel.256@gmail.com>'
+__version__ = '1.1.1' # Format specified in Python PEP 396
+Version = 'GAUSSINT.PY, version ' + __version__ +
+	', 8 June, 2013, by Robert Campbell, <r.campbel.256@gmail.com>'+
+	', modified 8 March 2019 by Hubert Holin, <Hubert.Holin.1982@Polytechnique.org>'
 
 import math  # Use floor
 import types # Use IntType, LongType
