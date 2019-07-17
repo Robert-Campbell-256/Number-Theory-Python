@@ -5,8 +5,8 @@
 #    Version 0.8 is compatible with both Python 2.5+ and 3.x 
 #       and changes some names to improve SAGE compatibility
 # Author: Robert Campbell, <r.campbel.256@gmail.com>
-# Date: 11 March, 2018
-# Version 0.97
+# Date: 23 Sept, 2018
+# Version 0.971
 # License: Simplified BSD (see details at bottom)1
 ######################################################################################
 """Finite fields.
@@ -46,8 +46,8 @@
 	        FiniteFieldElt(FiniteField(5, [4, 3, 1, 0, 1, 3, 0, 0]),[2, 0, 3, 4, 0, 1, 1, 0])"""
 
 
-__version__ = '0.97' # Format specified in Python PEP 396
-Version = 'finitefield.py, version ' + __version__ + ', 11 March, 2018, by Robert Campbell, <r.campbel.256@gmail.com>'
+__version__ = '0.971' # Format specified in Python PEP 396
+Version = 'finitefield.py, version ' + __version__ + ', 23 Sept, 2018, by Robert Campbell, <r.campbel.256@gmail.com>'
 
 import numbthy  # Use factor
 import random   # Generate random elements
@@ -85,7 +85,7 @@ class FiniteField(object):
 		self.order = self.char**self.degree
 		self.modpoly = poly
 		self.var = var
-		self.fmtspec = fmtspec # p=polynomial; c=coeffsonly
+		self.fmtspec = fmtspec
 		if(orderfacts == None):
 			self.facts_order_gpunits = numbthy.factor(self.order - 1)
 		else:
@@ -114,8 +114,11 @@ class FiniteField(object):
 			l - list of coefficients
 			c - coefficients in packed format
 			f - full format, can be used as input
+			s - short format
 			t - LaTeX format
-			s - short format"""
+			tl - LaTeX format (long)
+			ts - LaTeX format (short)
+"""
 		if(fmtspec == ''): fmtspec = self.fmtspec
 		if(fmtspec == 'p'): # Polynomial format
 			return "GF("+str(self.char)+"**"+str(self.degree)+","+self.polyprint(self.modpoly+[1],var=self.var)+")"
@@ -125,11 +128,13 @@ class FiniteField(object):
 			return "GF("+str(self.char)+"**"+str(self.degree)+","+''.join([str(self.modpoly[i]) for i in range(len(self.modpoly))])+"1"+")"
 		elif(fmtspec == 'f'): # Full form format - can be input
 			return "FiniteField("+str(self.char)+","+str(self.modpoly)+")"
-		if(fmtspec == 't'): # LaTeX format
-			return "GF("+str(self.char)+"^{"+str(self.degree)+"},"+self.polyprint(self.modpoly+[1],var=self.var,fmtspec='t')+")"
+		if(fmtspec == 't' or fmtspec == 'tl'): # long LaTeX format
+			return "{GF("+str(self.char)+")["+str(self.var)+r']/\left\langle{'+self.polyprint(self.modpoly+[1],var=self.var,fmtspec='t')+r'}\right\rangle}'
+		if(fmtspec == 'ts'): # short LaTeX format
+			return "{GF("+str(self.char)+"^{"+str(self.degree)+"})}"
 		elif(fmtspec == 's'): # Short format - field size only (can be input though)
 			return "GF("+str(self.char)+"**"+str(self.degree)+")"
-		else: raise ValueError("***** Error *****: FiniteField has valid fmtspec values p, l, c, f and s, not <{0}>".format(fmtspec))
+		else: raise ValueError("***** Error *****: FiniteField has valid fmtspec values p, l, c, f, s, t, tl and ts, not <{0}>".format(fmtspec))
 		return str(self)  # Get to this later
 
 	def __str__(self):  # Over-ride string conversion used by print
@@ -139,7 +144,7 @@ class FiniteField(object):
 			return "GF("+str(self.char)+")"			
 
 	def __repr__(self):  # Over-ride format conversion
-		return format(self)
+		return '{0:f}'.format(self)
 
 	def polyprint(self,coeffs,var='X',fmtspec='p'):  # Coefficients and polynomial variable, e.g. [1,2,2,0,3], "x" yields "1 + 2x + 2x^2 + 3x^4"
 		"""polyprint(coeffs,var=thevar,fmtspec=thefmtspec) prints the coefficients in polynomial form, 
@@ -269,11 +274,11 @@ class FiniteFieldElt(object):
 
 	def __str__(self):
 		"""over-ride string conversion used by print"""
-		return str(self.coeffs)
+		return '{0:p}'.format(self)
 
 	def __repr__(self):
-		"""over-ride string conversion used by print"""
-		return format(self)
+		"""over-ride format conversion"""
+		return '{0:f}'.format(self)
 
 	def __cmpfinfld__(self,other): # Implement cmp for both Python2 and Python3
 		"""compare two elements for equality and allow sorting
@@ -604,3 +609,6 @@ def GF(n, poly=[], var='x', fmtspec="p"):
 # 11 Mar 2018: ver 0.97
 #   Fix various bugs in GF
 #   polyprint: Let default var be 'X'
+# 11 Mar 2018: ver 0.971
+#   Minor format fixes to repr and str
+
