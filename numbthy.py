@@ -3,9 +3,9 @@
 # Basic Number Theory functions implemented in Python
 # Note: Version 0.7 changes some function names to align with SAGE
 # Note: Version 0.8 is compatible with both Python 2.5+ and 3.x
-# Author: Robert Campbell, <campbell@math.umbc.edu>
-# Date: 4 Sept, 2018
-# Version 0.82
+# Author: Robert Campbell, <r.campbel.256@gmail.com>
+# Date: 17 July, 2019
+# Version 0.83
 # License: Simplified BSD (see details at bottom)
 ######################################################################################
 """Basic number theory functions.
@@ -37,8 +37,8 @@
 		isprimitive(g,n) - Test whether g is primitive mod n.  (Renamed is_primitive_root(g,n) in ver 0.8)
 """
 
-__version__ = '0.82'  # Format specified in Python PEP 396
-Version = 'NUMBTHY.PY, version ' + __version__ + ', 4 Sept, 2018, by Robert Campbell, <campbell@math.umbc.edu>'
+__version__ = '0.83'  # Format specified in Python PEP 396
+Version = 'NUMBTHY.PY, version ' + __version__ + ', 17 July, 2019, by Robert Campbell, <r.campbel.256@gmail.com>'
 
 import math  # Use sqrt, floor
 import functools # Use reduce (Python 2.5+ and 3.x)
@@ -102,7 +102,7 @@ def is_prime(n):
 def factor(n):
 	"""factor(n) - Return a sorted list of the prime factors of n with exponents."""
 	# Rewritten to align with SAGE.  Previous semantics available as factors(n).
-	if (abs(n) == 1): return "Unable to factor "+str(n) # Can't deal with units
+	if ((abs(n) == 1) or (n == 0)): raise ValueError('Unable to factor {0}'.format(n))
 	factspow = []
 	currfact = None
 	for thefact in factors(n):
@@ -218,7 +218,7 @@ def factors(n):
 	if (is_prime(n)):
 		return [n]
 	fact = factorone(n)
-	if (fact == 1): return "Unable to factor "+str(n) # Can't deal with units
+	if ((abs(n) == 1) or (n == 0)): raise ValueError('Unable to factor \"{0}\"'.format(n))
 	facts = factors(n//fact) + factors(fact)
 	facts.sort()
 	return facts
@@ -271,16 +271,30 @@ def isprimitive(g,n):
 	# SAGE equivalent is mod(g,n).is_primitive_root() in IntegerMod class
 	return is_primitive_root(g,n)
 
-# import numbthy
-# reload(numbthy)  # Python 2
-# importlib.reload(numbthy) # Python 3
-# help(numbthy)
-# dir(numbthy)
+# 26 Mar 2007 - ver 0.4
+#   Correct error in xgcd().
+# 27 Apr 2007 - ver 0.41
+#   Correct error in Pollard Rho factoring algorithm.
+# 1 Oct 2012 - ver 0.5
+#   Changed xgcd() to correctly use true divide "//", rather than float divide "/"
+# 24 Nov 2012 - ver 0.6
+#   Add sqrtmod() function implementing Tonelli-Shanks-RESSOL.
+#   Add invmod() function as a convenience wrapper for xgcd().
+# 6 July 2014 - ver 0.7
+#   Changed to use SAGE-like function names.
+# 14 Oct 2014 - ver 0.8
+#   Complete refactoring. Works with Python 2.5+ and 3.x.
+# 18 Nov 2014 - ver 0.81
+#   Changes to Pollard Rho factoring algorithm.
+# 4 Sept 2018 - ver 0.82
+#   Replace gcd() with non-recursive version (in corner cases hits Python recursion limit)
+# 17 July 2019 - ver 0.83
+#   Throw exception when asked to factor 0 or 1
 
 ############################################################################
 # License: Freely available for use, abuse and modification
 # (this is the Simplified BSD License, aka FreeBSD license)
-# Copyright 2001-2014 Robert Campbell. All rights reserved.
+# Copyright 2001-2019 Robert Campbell. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
