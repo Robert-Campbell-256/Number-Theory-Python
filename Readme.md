@@ -11,12 +11,12 @@ The Number-Theory-Python package currently includes:
 * ECDSA.py: Elliptic curve signatures
 
 Functions implemented in numbthy.py are:
-* euler_criterion(a, p) - Check if a is QR mod p
 * gcd(a,b) - Compute the greatest common divisor of a and b.
 * xgcd(a,b) - Find [g,x,y] such that g=gcd(a,b) and g = ax + by.
 * power_mod(b,e,n) - Compute b^e mod n efficiently.
 * inverse_mod(b,n) - Compute 1/b mod n.
 * is_prime(n) - Test whether n is prime using a variety of pseudoprime tests.
+* euler_criterion(a, p) - Test whether a is a quadratic residue mod p.
 * euler_phi(n) - Compute Euler's Phi function of n - the number of integers strictly less than n which are coprime to n.
 * carmichael_lambda(n) - Compute Carmichael's Lambda function of n - the smallest exponent e such that b\*\*e = 1 for all b coprime to n.
 * factor(n) - Return a sorted list of the prime factors of n with exponents.
