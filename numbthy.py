@@ -4,8 +4,9 @@
 # Note: Version 0.7 changes some function names to align with SAGE
 # Note: Version 0.8 is compatible with both Python 2.5+ and 3.x
 # Author: Robert Campbell, <r.campbel.256@gmail.com>
-# Date: 17 July, 2019
-# Version 0.83
+# Contributors: Ege Alpay; ZhiHang Fan
+# Date: 13 Oct, 2019
+# Version 0.84
 # License: Simplified BSD (see details at bottom)
 ######################################################################################
 """Basic number theory functions.
@@ -15,6 +16,7 @@
 		power_mod(b,e,n) - Compute b^e mod n efficiently.
 		inverse_mod(b,n) - Compute 1/b mod n.
 		is_prime(n) - Test whether n is prime using a variety of pseudoprime tests.
+		euler_criterion(a, p) - Test whether a is a quadratic residue mod p
 		euler_phi(n) - Compute Euler's Phi function of n - the number of integers strictly less than n which are coprime to n.
 		carmichael_lambda(n) - Compute Carmichael's Lambda function of n - the smallest exponent e such that b**e = 1 for all b coprime to n.
 		factor(n) - Return a sorted list of the prime factors of n with exponents.
@@ -37,15 +39,17 @@
 		isprimitive(g,n) - Test whether g is primitive mod n.  (Renamed is_primitive_root(g,n) in ver 0.8)
 """
 
-__version__ = '0.83'  # Format specified in Python PEP 396
-Version = 'NUMBTHY.PY, version ' + __version__ + ', 17 July, 2019, by Robert Campbell, <r.campbel.256@gmail.com>'
+__version__ = '0.84'  # Format specified in Python PEP 396
+Version = 'NUMBTHY.PY, version ' + __version__ + ', 13 Oct, 2019, by Robert Campbell, <r.campbel.256@gmail.com>'
 
 import math  # Use sqrt, floor
 import functools # Use reduce (Python 2.5+ and 3.x)
 
 def euler_criterion(a, p):
-        """p is odd prime, a is positive integer. Euler's Criterion will check if a is QR mod p. If yes, returns True. If a is NR mod p, then False"""
-        return a ** ((p - 1) / 2) % p == 1
+    """p is odd prime, a is positive integer. Euler's Criterion will check if
+	a is a quadratic residue mod p. If yes, returns True. If a is a non-residue
+	mod p, then False"""
+    return pow(a, (p - 1) // 2, p) == 1
 
 def gcd(a,b):
 	"""gcd(a,b) returns the greatest common divisor of the integers a and b."""
@@ -109,6 +113,7 @@ def factor(n):
 	if ((abs(n) == 1) or (n == 0)): raise ValueError('Unable to factor {0}'.format(n))
 	factspow = []
 	currfact = None
+	thecount = 1
 	for thefact in factors(n):
 		if thefact != currfact:
 			if currfact != None:
@@ -260,9 +265,9 @@ def invmod(b,n):
 	return inverse_mod(b,n)
 
 def eulerphi(n):
-        """eulerphi(n) - Compute Euler's Phi function of n - the number of integers strictly less than n which are coprime to n.
-        (Renamed euler_phi(n) in ver 0.7)"""
-	return euler_phi(n)
+    """eulerphi(n) - Compute Euler's Phi function of n - the number of integers strictly less than n which are coprime to n.
+    (Renamed euler_phi(n) in ver 0.7)"""
+    return euler_phi(n)
 
 def carmichaellambda(n):
 	"""carmichaellambda(n) - Compute Carmichael's Lambda function
@@ -310,4 +315,3 @@ def isprimitive(g,n):
 #       notice, this list of conditions and the following disclaimer in
 #       the documentation and/or other materials provided with the distribution.
 ############################################################################
-
