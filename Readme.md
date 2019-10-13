@@ -11,6 +11,7 @@ The Number-Theory-Python package currently includes:
 * ECDSA.py: Elliptic curve signatures
 
 Functions implemented in numbthy.py are:
+* euler_criterion(a, p) - Check if a is QR mod p
 * gcd(a,b) - Compute the greatest common divisor of a and b.
 * xgcd(a,b) - Find [g,x,y] such that g=gcd(a,b) and g = ax + by.
 * power_mod(b,e,n) - Compute b^e mod n efficiently.

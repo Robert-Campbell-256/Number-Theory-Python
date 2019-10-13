@@ -43,6 +43,10 @@ Version = 'NUMBTHY.PY, version ' + __version__ + ', 17 July, 2019, by Robert Cam
 import math  # Use sqrt, floor
 import functools # Use reduce (Python 2.5+ and 3.x)
 
+def euler_criterion(a, p):
+        """p is odd prime, a is positive integer. Euler's Criterion will check if a is QR mod p. If yes, returns True. If a is NR mod p, then False"""
+        return a ** ((p - 1) / 2) % p == 1
+
 def gcd(a,b):
 	"""gcd(a,b) returns the greatest common divisor of the integers a and b."""
 	a = abs(a); b = abs(b)
@@ -185,7 +189,7 @@ def TSRsqrtmod(a,grpord,p):
 	# Now a*(g**powg) is in cyclic group of odd order non2 - can sqrt directly
 	d = invmod(2,non2)
 	tmp = pow(a*pow(g,gpow,p),d,p)  # sqrt(a*(g**gpow))
-	return (tmp*inverse_mod(pow(g,gpow//2,p),p)) % p  # sqrt(a*(g**gpow))//g**(gpow//2)	
+	return (tmp*inverse_mod(pow(g,gpow//2,p),p)) % p  # sqrt(a*(g**gpow))//g**(gpow//2)
 
 ################ Internally used functions #########################################
 
@@ -256,8 +260,8 @@ def invmod(b,n):
 	return inverse_mod(b,n)
 
 def eulerphi(n):
-	"""eulerphi(n) - Compute Euler's Phi function of n - the number of integers strictly less than n which are coprime to n. 
-	(Renamed euler_phi(n) in ver 0.7)"""
+        """eulerphi(n) - Compute Euler's Phi function of n - the number of integers strictly less than n which are coprime to n.
+        (Renamed euler_phi(n) in ver 0.7)"""
 	return euler_phi(n)
 
 def carmichaellambda(n):
