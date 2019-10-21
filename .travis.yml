@@ -1,0 +1,12 @@
+language: python
+matrix:
+  include:
+    - python: 2.6 # Still in use, but not avail on xenial (ubuntu 16.04, now used by Travis CI)
+      dist: trusty
+    - python: 2.7 # Most recent (and final) Python 2.x
+      dist: xenial
+    - python: 3.3
+      dist: trusty
+    - python: 3.7 # Latest python
+      dist: xenial
+script: python test_numbthy_unittest.py
