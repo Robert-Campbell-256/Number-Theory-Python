@@ -43,6 +43,7 @@ __version__ = '0.84'  # Format specified in Python PEP 396
 Version = 'NUMBTHY.PY, version ' + __version__ + ', 13 Oct, 2019, by Robert Campbell, <r.campbel.256@gmail.com>'
 
 import math  # Use sqrt, floor
+import decimal #use sqrt
 import functools # Use reduce (Python 2.5+ and 3.x)
 
 def euler_criterion(a, p):
@@ -235,7 +236,7 @@ def factors(n):
 def factorPR(n):
 	"""factorPR(n) - Find a factor of n using the Pollard Rho method.
 	Note: This method will occasionally fail."""
-	numsteps=2*math.floor(math.sqrt(math.sqrt(n)))
+	numsteps=2*math.floor(decimal.Decimal((decimal.Decimal(n).sqrt()).sqrt()))
 	for additive in range(1,5):
 		fast=slow=1; i=1
 		while i<numsteps:
