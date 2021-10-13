@@ -253,7 +253,6 @@ class EllipticCurveElt(object):
 	def __imul__(self,multip): # Overload the "*=" operator
 		self = self.mult(multip)
 		return self
-
 ############################################################################
 # License: Freely available for use, abuse and modification
 # (this is the Simplified BSD License, aka FreeBSD license)
@@ -289,3 +288,4 @@ class EllipticCurveElt(object):
 #   Added iterator
 #   Added call (coerce list as point on curve)
 #   Changed list to tuple for (x,y) - fix comparison bug
+#   List to tuple conversion is so easy as well as any datatype to another
